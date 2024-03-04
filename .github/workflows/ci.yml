@@ -10,7 +10,7 @@ on:
       - develop
 
 env:
-  CLANG_TIDY_VERSION: "15.0.2"
+  CLANG_TIDY_VERSION: "17.0.3"
   VERBOSE: 1
 
 
@@ -30,11 +30,11 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-          - macos-10.15
+          #- macos-10.15
           - windows-2019
         compiler:
           # you can specify the version after `-` like "llvm-15.0.2".
-          - llvm-15.0.2
+          - llvm-17.0.3
           - gcc-11
         generator:
           - "Ninja Multi-Config"
@@ -50,30 +50,31 @@ jobs:
         exclude:
           # mingw is determined by this author to be too buggy to support
           - os: windows-2019
-            compiler: gcc-11
+            compiler:  gcc-11
+          #- os: macos-10.15
 
         include:
           # Add appropriate variables for gcov version required. This will intentionally break
           # if you try to use a compiler that does not have gcov set
-          - compiler: gcc-11
+          - compiler:  gcc-11
             gcov_executable: gcov
             enable_ipo: On
 
-          - compiler: llvm-15.0.2
+          - compiler: llvm-17.0.3
             enable_ipo: Off
             gcov_executable: "llvm-cov gcov"
 
-          - os: macos-10.15
-            enable_ipo: Off
+          #- os: macos-10.15
+          #  enable_ipo: Off
 
           # Set up preferred package generators, for given build configurations
-          - build_type: Release
-            packaging_maintainer_mode: OFF
-            package_generator: TBZ2
+          #- build_type: Release
+          #  packaging_maintainer_mode: OFF
+          #  package_generator: TBZ2
 
           # This exists solely to make sure a non-multiconfig build works
           - os: ubuntu-20.04
-            compiler: gcc-11
+            compiler:  gcc-11
             generator: "Unix Makefiles"
             build_type: Debug
             gcov_executable: gcov
@@ -120,12 +121,12 @@ jobs:
     steps:
       - name: Check for llvm version mismatches
         if: ${{ contains(matrix.compiler, 'llvm') && !contains(matrix.compiler, env.CLANG_TIDY_VERSION) }}
-        uses: actions/github-script@v3
+        uses: actions/github-script@v7.0.1
         with:
           script: |
             core.setFailed('There is a mismatch between configured llvm compiler and clang-tidy version chosen')
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.1.1
 
       - name: Setup Cache
         uses: ./.github/actions/setup_cache
@@ -136,7 +137,7 @@ jobs:
           generator: ${{ matrix.generator }}
 
       - name: Project Name
-        uses: cardinalby/export-env-action@v2
+        uses: cardinalby/export-env-action@2.2.0
         with:
           envFile: '.github/constants.env'
 
@@ -152,8 +153,8 @@ jobs:
           vcpkg: false
           ccache: true
           clangtidy: ${{ env.CLANG_TIDY_VERSION }}
-
-
+          doxygen: true
+          graphviz: true
           cppcheck: true
 
           gcovr: true
@@ -198,8 +199,10 @@ jobs:
 
 
       - name: Publish to codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
+        env:
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: ${{ runner.os }}
           name: ${{ runner.os }}-coverage
-          files: ./build/coverage.xml
+          files: ./build/coverage.xmlù
